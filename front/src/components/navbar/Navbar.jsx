@@ -48,7 +48,7 @@ const Navbar = () => {
 	return (
 		<div className={styles.container} style={{ backgroundColor: color }}>
 			<div className={styles.contFlex}>
-				<Link to="/" className={styles.logo}>
+				<Link to="//" className={styles.logo}>
 					<img src={lSkills} alt="Logo" />
 				</Link>
 				<div className={styles.opsBody}>

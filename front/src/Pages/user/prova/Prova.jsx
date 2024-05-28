@@ -11,37 +11,38 @@ import "react-toastify/dist/ReactToastify.css";
 const Prova = () => {
   const [provaData, setProvaData] = useState([]);
   const [selectedOptions, setSelectedOptions] = useState({});
-  const [resposta, setResposta] = useState([]);
+  const [checkedAnswers, setCheckedAnswers] = useState({});
+  const [showResults, setShowResults] = useState(false);
+  const [numeroRespostasCorretas, setNumeroRespostasCorretas] = useState(0);
 
-  const handleRadioChange = (event, index, idx) => {
-    const { value } = event.target;
-    setSelectedOptions(prevState => ({
+  const handleOptionClick = (index, idx) => {
+    setSelectedOptions((prevState) => ({
       ...prevState,
-      [`questao_${index}`]: {
-        alternativa: value,
-        correta: provaData[index].perguntas[idx].respostaCerta,
-        questaoIndex: index
-      }
+      [`questao_${index}`]: idx,
     }));
   };
 
+  const color = localStorage.getItem("color") || "#0000ff";
+
   const request = async () => {
     try {
-      const response = await axios.get(`${api}/provas/Prova/1`, {
+      const response = await axios.get(`${api}/provas/Prova/5`, {
         params: {
-          percentage: "100"
-        }
+          percentage: "100",
+        },
       });
 
       if (response && response.data && Array.isArray(response.data)) {
         const conteudoProva = response.data[0];
-        const formattedData = JSON.parse(conteudoProva.conteudo_prova).map((item) => ({
-          enunciado: item.Enunciado,
-          perguntas: item.perguntas.map((pergunta) => ({
-            alternativas: pergunta.alternativas,
-            respostaCerta: pergunta.respostaCerta
-          }))
-        }));
+        const formattedData = JSON.parse(conteudoProva.conteudo_prova).map(
+          (item) => ({
+            enunciado: item.Enunciado,
+            perguntas: item.perguntas.map((pergunta) => ({
+              alternativas: pergunta.alternativas,
+              respostaCerta: pergunta.respostaCerta,
+            })),
+          })
+        );
 
         setProvaData(formattedData);
       } else {
@@ -56,97 +57,136 @@ const Prova = () => {
     request();
   }, []);
 
-  const [showContent, setShowContent] = useState(false);
-
-  const handleClick = () => {
-    setShowContent(true);
-    verificarRespostasCorretas();
-  };
-
-  const [numeroRespostasCorretas, setNumeroRespostasCorretas] = useState(0);
-  const handleRespostaCorreta = () => {
-    setNumeroRespostasCorretas(prevCount => prevCount + 1);
-  };
-
   const verificarRespostasCorretas = () => {
-    // Lógica para verificar respostas corretas e contar o número de respostas corretas
+    const newCheckedAnswers = {};
+    let corretas = 0;
+
     Object.entries(selectedOptions).forEach(([key, value]) => {
-      if (!value.correta) {
-        // Se a resposta estiver errada, mostrar tanto a resposta errada quanto a correta
-        const questaoIndex = parseInt(key.split('_')[1]);
-        const questao = provaData[questaoIndex];
-        setResposta(prevState => ({
-          ...prevState,
-          [`questao_${questaoIndex}`]: {
-            alternativaErrada: value.alternativa,
-            respostaCerta: questao.perguntas.find(pergunta => pergunta.respostaCerta).alternativas
-          }
-        }));
-      } else {
-        setNumeroRespostasCorretas(prevCount => prevCount + 1);
+      const questaoIndex = parseInt(key.split("_")[1]);
+      const correta =
+        provaData[questaoIndex].perguntas[value].alternativas ===
+        provaData[questaoIndex].perguntas.find(
+          (pergunta) => pergunta.respostaCerta
+        ).alternativas;
+      newCheckedAnswers[questaoIndex] = correta ? "correct" : "incorrect";
+
+      if (correta) {
+        corretas++;
       }
     });
+
+    setCheckedAnswers(newCheckedAnswers);
+    setNumeroRespostasCorretas(corretas);
+    setShowResults(true);
   };
+
+  const ops = ["A", "B", "C", "D", "E"];
 
   return (
     <div className={styles.container}>
       <Navbar />
-      <div className={styles.cont}>
-        {provaData.map((prova, index) => (
-          <div key={index}>
-            <h3>Questão {index + 1}: {prova.enunciado}</h3>
-            <ul>
-              {prova.perguntas.map((pergunta, idx) => (
-                <li key={idx}>
-                  <label>
-                    <input
-                      type="radio"
-                      name={`questao_${index}`}
-                      value={pergunta.alternativas}
-                      onChange={(event) => handleRadioChange(event, index, idx)}
-                    />
-                    {pergunta.alternativas}
-                  </label>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </div>
-
-      <h4>Seleções do usuário:</h4>
-      <div>
-        <div>
-          <button onClick={handleClick}>Mostrar Conteúdo</button>
-          {showContent && (
-            <ul>
-              {showContent && (
+      <div className={styles.asd}>
+        <div className={styles.modalBody}>
+          <div className={styles.quests}>
+            {provaData.map((prova, index) => (
+              <div
+                style={{ border: `2px solid ${color}` }}
+                className={styles.contQuest}
+                key={index}
+              >
+                <h3>
+                  {index + 1} - {prova.enunciado}
+                </h3>
                 <ul>
-                  {Object.entries(selectedOptions).map(([key, value]) => {
-                    const questaoIndex = parseInt(key.split('_')[1]);
-                    const questao = provaData[questaoIndex];
-                    return (
-                      <li key={key}>
-                        <p><strong>Questão {questaoIndex + 1}:</strong> {questao ? questao.enunciado : 'Enunciado não encontrado'}</p>
-                        <p>Alternativa selecionada: {value.alternativa}</p>
-                        {value.correta ? (
-                          <h1>Resposta correta</h1>
-                        ) : (
-                          <>
-                            <h1>Resposta errada</h1>
-                            <p>Alternativa errada: {resposta[`questao_${questaoIndex}`].alternativaErrada}</p>
-                            <p>Resposta correta: {resposta[`questao_${questaoIndex}`].respostaCerta}</p>
-                          </>
-                        )}
-                      </li>
-                    );
-                  })}
+                  {prova.perguntas.map((pergunta, idx) => (
+                    <div
+                      className={styles.options}
+                      style={{
+                        backgroundColor:
+                          showResults &&
+                          checkedAnswers[index] === "correct" &&
+                          selectedOptions[`questao_${index}`] === idx
+                            ? "#6BB268"
+                            : showResults &&
+                              checkedAnswers[index] === "incorrect" &&
+                              selectedOptions[`questao_${index}`] === idx
+                            ? "#E33F42"
+                            : selectedOptions[`questao_${index}`] === idx,
+                        color:
+                          selectedOptions[`questao_${index}`] === idx &&
+                          showResults &&
+                          (checkedAnswers[index] === "correct" ||
+                            checkedAnswers[index] === "incorrect")
+                            ? "white"
+                            : "black",
+                      }}
+                      key={idx}
+                    >
+                      <button
+                        type="button"
+                        style={{
+                          border: `1px solid ${
+                            showResults &&
+                            checkedAnswers[index] &&
+                            selectedOptions[`questao_${index}`] === idx
+                              ? "white"
+                              : color
+                          }`,
+                          backgroundColor:
+                            showResults &&
+                            checkedAnswers[index] === "correct" &&
+                            selectedOptions[`questao_${index}`] === idx
+                              ? "#6BB268"
+                              : showResults &&
+                                checkedAnswers[index] === "incorrect" &&
+                                selectedOptions[`questao_${index}`] === idx
+                              ? "#E33F42"
+                              : selectedOptions[`questao_${index}`] === idx
+                              ? color
+                              : "",
+                          color:
+                            selectedOptions[`questao_${index}`] === idx
+                              ? "white"
+                              : "black",
+                        }}
+                        className={styles.optionButton}
+                        onClick={() => handleOptionClick(index, idx)}
+                        disabled={showResults}
+                      >
+                        {ops[idx]}
+                      </button>
+                      <p>{pergunta.alternativas}</p>
+                    </div>
+                  ))}
                 </ul>
-              )}
-            </ul>
-          )}
-          <p>Número de respostas corretas: {numeroRespostasCorretas}</p>
+              </div>
+            ))}
+          </div>
+          <div className={styles.sideBar}>
+            <div>
+              <button
+                className={styles.send}
+                onClick={verificarRespostasCorretas}
+                style={{ backgroundColor: color }}
+              >
+                Enviar Respostas
+              </button>
+            </div>
+            <div className={styles.results}>
+              <p>
+                Questões corretas: {showResults ? numeroRespostasCorretas : ""}
+              </p>
+              <p>
+                Questões Incorretas:
+                {showResults
+                  ? Object.keys(selectedOptions).length -
+                    numeroRespostasCorretas
+                  : ""}
+              </p>
+            </div>
+          </div>
         </div>
+        <ToastContainer />
       </div>
     </div>
   );
