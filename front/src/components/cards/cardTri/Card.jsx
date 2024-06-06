@@ -4,11 +4,6 @@ import ProgressBar from "../../progress/ProgressBar";
 import { Link } from "react-router-dom";
 
 const Card = ({ url, nome, lider, time, cargHora, img }) => {
-    const [progressoTrilha, setProgressoTrilha] = useState(0);
-
-    const atualizarProgresso = (novoProgresso) => {
-        setProgressoTrilha(novoProgresso);
-    };
 
     return (
         <Link to={url} className={styles.contTri}>
@@ -30,14 +25,7 @@ const Card = ({ url, nome, lider, time, cargHora, img }) => {
                     <div className={styles.contmib}>
                         <div className={styles.mInfosB}>
                             <p>Carga Horaria: {cargHora} horas</p>
-                            <p>Porcentagem: {progressoTrilha}%</p>
                         </div>
-                    </div>
-                    <div className={styles.progress}>
-                        <ProgressBar
-                            progress={progressoTrilha}
-                            atualizarProgresso={atualizarProgresso}
-                        />
                     </div>
                 </div>
             </div>
